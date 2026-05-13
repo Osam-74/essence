@@ -8,7 +8,9 @@ const firebaseConfig = {
   apiKey: "AIzaSyAEe5kMU-hLtgLRgM8PTHPqr3deTtGbCcw",
   authDomain: "essence-c7eda.firebaseapp.com",
   projectId: "essence-c7eda",
-  storageBucket: "essence-c7eda.firebasestorage.app",
+  storageBucket: "essence-c7eda.appspot.com",
+  // NOTE: storageBucket usually ends with .appspot.com — adjust if your Firebase uses a different bucket
+  // common format: "<project-id>.appspot.com"
   messagingSenderId: "146684282226",
   appId: "1:146684282226:web:c72ca354f2cd017f66c9eb",
   measurementId: "G-E77F6EJE30"
@@ -488,25 +490,34 @@ async function addProduct() {
   try {
     const op = (async () => {
       // Upload images to Firebase Storage
+      showMsg('addMsg', 'Uploading images...', 'info');
       const uploadedUrls = await uploadImagesToStorage(newImages, `products/${Date.now()}`);
 
-      const docRef = await db.collection(COL_PRODUCTS).add({
-        name, price, desc,
-        images: uploadedUrls,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
+      // Save product doc
+      showMsg('addMsg', 'Saving product...', 'info');
+      try {
+        const docRef = await db.collection(COL_PRODUCTS).add({
+          name, price, desc,
+          images: uploadedUrls,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-      products.push({ id: docRef.id, name, price, desc, images: uploadedUrls });
-      renderCarousel();
+        products.push({ id: docRef.id, name, price, desc, images: uploadedUrls });
+        renderCarousel();
 
-      document.getElementById('addName').value = '';
-      document.getElementById('addPrice').value = '';
-      document.getElementById('addDesc').value = '';
-      document.getElementById('imagePreviewRow').innerHTML = '';
-      const addImagesEl = document.getElementById('addImages');
-      if (addImagesEl) addImagesEl.value = '';
-      newImages = [];
-      return name;
+        document.getElementById('addName').value = '';
+        document.getElementById('addPrice').value = '';
+        document.getElementById('addDesc').value = '';
+        document.getElementById('imagePreviewRow').innerHTML = '';
+        const addImagesEl = document.getElementById('addImages');
+        if (addImagesEl) addImagesEl.value = '';
+        newImages = [];
+        return name;
+      } catch (dbErr) {
+        console.error('addProduct: Firestore add error', dbErr);
+        try { localStorage.setItem('ss_last_error', JSON.stringify({ where: 'firestore-add', message: dbErr && dbErr.message, stack: dbErr && dbErr.stack, ts: Date.now() })); } catch(e){}
+        throw dbErr;
+      }
     })();
 
     // Timeout wrapper
@@ -537,13 +548,23 @@ async function uploadImagesToStorage(base64Arr, pathPrefix) {
       const b64 = base64Arr[i];
       const mimeMatch = b64.match(/data:([^;]+);base64,/);
       const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      // debug: record progress
+      console.log(`uploadImagesToStorage: converting image ${i}`);
+      localStorage.setItem('ss_last_op', JSON.stringify({ step: 'convert-image', index: i, ts: Date.now() }));
       const blob = await (await fetch(b64)).blob();
       const ref = storage.ref(`${pathPrefix}_${i}.jpg`);
+      console.log(`uploadImagesToStorage: putting to storage ${ref.fullPath || ref.name || '(ref)'}`);
+      localStorage.setItem('ss_last_op', JSON.stringify({ step: 'put-blob', index: i, ts: Date.now() }));
       await ref.put(blob, { contentType: mime });
       const url = await ref.getDownloadURL();
       urls.push(url);
+      console.log(`uploadImagesToStorage: uploaded ${i}`, url);
     } catch (e) {
       // If storage fails (e.g. rules), fall back to keeping the base64
+      console.error('uploadImagesToStorage error:', e);
+      try {
+        localStorage.setItem('ss_last_error', JSON.stringify({ where: 'uploadImagesToStorage', index: i, message: e && e.message, stack: e && e.stack, ts: Date.now() }));
+      } catch (err) { /* ignore localStorage errors */ }
       urls.push(base64Arr[i]);
     }
   }
