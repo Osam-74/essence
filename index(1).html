@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Scent & Soul — Luxury Perfumes</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav class="navbar">
+    <div class="nav-logo">
+      <span class="logo-icon">✦</span>
+      <span class="logo-text">Scent &amp; Soul</span>
+    </div>
+    <button class="manage-btn" onclick="openLoginModal()">Manage</button>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero">
+    <p class="hero-sub">Handcrafted · Exclusive · Timeless</p>
+    <h1 class="hero-title">Our <em>Collection</em></h1>
+  </header>
+
+  <!-- CAROUSEL SECTION -->
+  <section class="carousel-section">
+    <div class="carousel-track-wrapper">
+      <div class="carousel-track" id="carouselTrack"></div>
+    </div>
+
+    <!-- Dot indicators -->
+    <div class="dots-container" id="dotsContainer"></div>
+
+    <!-- Nav arrows -->
+    <button class="arrow arrow-left" id="arrowLeft" onclick="slide(-1)">&#8592;</button>
+    <button class="arrow arrow-right" id="arrowRight" onclick="slide(1)">&#8594;</button>
+  </section>
+
+  <div class="empty-state" id="emptyState" style="display:none;">
+    <div class="empty-icon">✦</div>
+    <p>No perfumes listed yet.<br>Check back soon.</p>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p class="footer-brand">Scent &amp; Soul</p>
+    <p class="footer-copy">&copy; 2025 · All rights reserved</p>
+  </footer>
+
+  <!-- ===== LOGIN MODAL ===== -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal login-modal">
+      <button class="modal-close" onclick="closeLoginModal()">&#10005;</button>
+      <h2 class="modal-title">Manager Login</h2>
+      <p class="modal-subtitle">Enter your passcode</p>
+
+      <div class="passcode-display" id="passcodeDisplay">
+        <span class="dot" id="d1"></span>
+        <span class="dot" id="d2"></span>
+        <span class="dot" id="d3"></span>
+        <span class="dot" id="d4"></span>
+        <span class="dot" id="d5"></span>
+        <span class="dot" id="d6"></span>
+        <span class="dot" id="d7"></span>
+        <span class="dot" id="d8"></span>
+        <span class="dot" id="d9"></span>
+        <span class="dot" id="d10"></span>
+      </div>
+      <p class="login-error" id="loginError"></p>
+
+      <div class="phone-keypad">
+        <button class="key-btn" onclick="keyPress('1')"><span class="key-num">1</span><span class="key-alpha"></span></button>
+        <button class="key-btn" onclick="keyPress('2')"><span class="key-num">2</span><span class="key-alpha">ABC</span></button>
+        <button class="key-btn" onclick="keyPress('3')"><span class="key-num">3</span><span class="key-alpha">DEF</span></button>
+        <button class="key-btn" onclick="keyPress('4')"><span class="key-num">4</span><span class="key-alpha">GHI</span></button>
+        <button class="key-btn" onclick="keyPress('5')"><span class="key-num">5</span><span class="key-alpha">JKL</span></button>
+        <button class="key-btn" onclick="keyPress('6')"><span class="key-num">6</span><span class="key-alpha">MNO</span></button>
+        <button class="key-btn" onclick="keyPress('7')"><span class="key-num">7</span><span class="key-alpha">PQRS</span></button>
+        <button class="key-btn" onclick="keyPress('8')"><span class="key-num">8</span><span class="key-alpha">TUV</span></button>
+        <button class="key-btn" onclick="keyPress('9')"><span class="key-num">9</span><span class="key-alpha">WXYZ</span></button>
+        <button class="key-btn key-star" onclick="keyPress('*')"><span class="key-num">*</span><span class="key-alpha"></span></button>
+        <button class="key-btn" onclick="keyPress('0')"><span class="key-num">0</span><span class="key-alpha">+</span></button>
+        <button class="key-btn key-hash" onclick="keyDelete()"><span class="key-num">⌫</span><span class="key-alpha"></span></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MANAGER PANEL ===== -->
+  <div class="modal-overlay" id="managerPanel">
+    <div class="modal manager-modal">
+      <button class="modal-close" onclick="closeManagerPanel()">&#10005;</button>
+      <h2 class="modal-title">Manage Products</h2>
+
+      <div class="manager-tabs">
+        <button class="tab-btn active" id="tabAdd" onclick="switchTab('add')">Add New</button>
+        <button class="tab-btn" id="tabEdit" onclick="switchTab('edit')">Edit / Delete</button>
+        <button class="tab-btn" id="tabSettings" onclick="switchTab('settings')">Settings</button>
+      </div>
+
+      <!-- ADD TAB -->
+      <div class="tab-content" id="tabContentAdd">
+        <div class="form-group">
+          <label>Perfume Name</label>
+          <input type="text" id="addName" placeholder="e.g. Clause Rose" />
+        </div>
+        <div class="form-group">
+          <label>Price (e.g. ₦25,000)</label>
+          <input type="text" id="addPrice" placeholder="₦25,000" />
+        </div>
+        <div class="form-group">
+          <label>Short Description (optional)</label>
+          <input type="text" id="addDesc" placeholder="Warm · Floral · Elegant" />
+        </div>
+        <div class="form-group">
+          <label>Product Images (up to 5)</label>
+          <div class="upload-area" id="uploadArea" onclick="document.getElementById('addImages').click()">
+            <span>📷 Tap to upload images</span>
+          </div>
+          <input type="file" id="addImages" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)" />
+          <div class="image-preview-row" id="imagePreviewRow"></div>
+        </div>
+        <button class="primary-btn" onclick="addProduct()">Add Perfume ✦</button>
+        <p class="form-msg" id="addMsg"></p>
+      </div>
+
+      <!-- EDIT TAB -->
+      <div class="tab-content hidden" id="tabContentEdit">
+        <div class="product-list" id="editProductList"></div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div class="tab-content hidden" id="tabContentSettings">
+        <div class="form-group">
+          <label>WhatsApp Number (with country code)</label>
+          <input type="text" id="waNumber" placeholder="e.g. 2348012345678" />
+        </div>
+        <div class="form-group">
+          <label>Store Name</label>
+          <input type="text" id="storeName" placeholder="Scent & Soul" />
+        </div>
+        <button class="primary-btn" onclick="saveSettings()">Save Settings</button>
+        <p class="form-msg" id="settingsMsg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- EDIT SINGLE PRODUCT MODAL -->
+  <div class="modal-overlay" id="editProductModal">
+    <div class="modal edit-modal">
+      <button class="modal-close" onclick="closeEditModal()">&#10005;</button>
+      <h2 class="modal-title">Edit Perfume</h2>
+      <input type="hidden" id="editId" />
+      <div class="form-group">
+        <label>Perfume Name</label>
+        <input type="text" id="editName" />
+      </div>
+      <div class="form-group">
+        <label>Price</label>
+        <input type="text" id="editPrice" />
+      </div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="editDesc" />
+      </div>
+      <div class="form-group">
+        <label>Add More Images</label>
+        <div class="upload-area" onclick="document.getElementById('editImages').click()">
+          <span>📷 Tap to upload more images</span>
+        </div>
+        <input type="file" id="editImages" accept="image/*" multiple style="display:none" onchange="handleEditImageUpload(event)" />
+        <div class="image-preview-row" id="editImagePreviewRow"></div>
+      </div>
+      <button class="primary-btn" onclick="saveEdit()">Save Changes</button>
+      <p class="form-msg" id="editMsg"></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
