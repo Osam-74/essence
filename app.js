@@ -489,12 +489,12 @@ async function addProduct() {
   const OP_TIMEOUT = 30000; // 30s
   try {
     const op = (async () => {
-      // Upload images to Firebase Storage
-      showMsg('addMsg', 'Uploading images...', 'info');
+      // Prepare images (stored as base64 in Firestore on free plan)
+      showMsg('addMsg', 'Preparing images...', 'info');
       const uploadedUrls = await uploadImagesToStorage(newImages, `products/${Date.now()}`);
 
-      // Save product doc
-      showMsg('addMsg', 'Saving product...', 'info');
+      // Save product doc with images
+      showMsg('addMsg', 'Saving product to database...', 'info');
       try {
         const docRef = await db.collection(COL_PRODUCTS).add({
           name, price, desc,
@@ -539,36 +539,14 @@ async function addProduct() {
   }
 }
 
-// Upload base64 images to Firebase Storage, returns array of download URLs
+// Store base64 images in Firestore (free plan — no Firebase Storage needed)
+// Returns array of base64 strings or URLs
 async function uploadImagesToStorage(base64Arr, pathPrefix) {
   if (!base64Arr.length) return [];
-  const urls = [];
-  for (let i = 0; i < base64Arr.length; i++) {
-    try {
-      const b64 = base64Arr[i];
-      const mimeMatch = b64.match(/data:([^;]+);base64,/);
-      const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      // debug: record progress
-      console.log(`uploadImagesToStorage: converting image ${i}`);
-      localStorage.setItem('ss_last_op', JSON.stringify({ step: 'convert-image', index: i, ts: Date.now() }));
-      const blob = await (await fetch(b64)).blob();
-      const ref = storage.ref(`${pathPrefix}_${i}.jpg`);
-      console.log(`uploadImagesToStorage: putting to storage ${ref.fullPath || ref.name || '(ref)'}`);
-      localStorage.setItem('ss_last_op', JSON.stringify({ step: 'put-blob', index: i, ts: Date.now() }));
-      await ref.put(blob, { contentType: mime });
-      const url = await ref.getDownloadURL();
-      urls.push(url);
-      console.log(`uploadImagesToStorage: uploaded ${i}`, url);
-    } catch (e) {
-      // If storage fails (e.g. rules), fall back to keeping the base64
-      console.error('uploadImagesToStorage error:', e);
-      try {
-        localStorage.setItem('ss_last_error', JSON.stringify({ where: 'uploadImagesToStorage', index: i, message: e && e.message, stack: e && e.stack, ts: Date.now() }));
-      } catch (err) { /* ignore localStorage errors */ }
-      urls.push(base64Arr[i]);
-    }
-  }
-  return urls;
+  // On free plan, store images as base64 directly in Firestore
+  // They're already base64 from the file upload, so just return them
+  console.log(`uploadImagesToStorage: storing ${base64Arr.length} images as base64 in Firestore (free plan)`);
+  return base64Arr;
 }
 
 // ─── EDIT/DELETE PRODUCTS ────────────────────────────────────
