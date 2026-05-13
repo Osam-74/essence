@@ -10,7 +10,7 @@
   <meta name="description" content="Exclusive handcrafted luxury perfume collection."/>
   <title>Scent &amp; Soul — Luxury Perfumes</title>
   <link rel="manifest" href="manifest.json"/>
-  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="apple-touch-icon" href="icon-192.png"/>
   <link rel="stylesheet" href="style.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
@@ -135,7 +135,7 @@
           <input type="file" id="addImages" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)"/>
           <div class="image-preview-row" id="imagePreviewRow"></div>
         </div>
-        <button class="primary-btn" onclick="addProduct()">Add Perfume ✦</button>
+        <button id="addBtn" class="primary-btn" onclick="addProduct()">Add Perfume ✦</button>
         <p class="form-msg" id="addMsg"></p>
       </div>
 
