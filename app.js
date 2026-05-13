@@ -418,7 +418,8 @@ function positionCarousel(animate = true) {
   const GAP = 20;
   // Use the actual rendered card width (first card)
   const cardWidth = cards[0].getBoundingClientRect().width || cards[0].offsetWidth;
-  const viewportW  = document.getElementById('carouselSection').offsetWidth;
+  const section = document.getElementById('carouselSection');
+  const viewportW = section ? section.offsetWidth : window.innerWidth;
 
   cards.forEach((card, i) => {
     card.classList.remove('active', 'adjacent');
@@ -427,18 +428,17 @@ function positionCarousel(animate = true) {
   });
 
   /*
-    We want card[currentIndex] centered in viewportW.
-    Card left edge without any transform = index * (cardWidth + GAP).
-    Center of that card                  = index * (cardWidth + GAP) + cardWidth/2.
-    We want it at viewportW/2:
-      offset = viewportW/2 - (index*(cardWidth+GAP) + cardWidth/2)
+    Center the active card in the viewport.
+    On mobile: card should be centered with padding on sides.
+    On desktop: card is centered with side-peek cards visible.
   */
-  const offset = viewportW / 2 - (currentIndex * (cardWidth + GAP)) - cardWidth / 2;
+  const totalCardSpace = currentIndex * (cardWidth + GAP);
+  const offset = viewportW / 2 - totalCardSpace - cardWidth / 2;
 
   if (!animate) track.style.transition = 'none';
   track.style.transform = `translateX(${offset}px)`;
   if (!animate) {
-    track.offsetHeight;          // force reflow
+    track.offsetHeight;
     track.style.transition = '';
   }
 
