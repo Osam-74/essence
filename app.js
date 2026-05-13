@@ -202,54 +202,7 @@ let products     = [];
 let touchStartX  = 0;
 let touchEndX    = 0;
 
-// ─── PWA INSTALL (moved before DOM) ──────────────────────────
-let deferredInstallPrompt = null;
-
-function setupInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    // Show banner if not dismissed
-    if (!localStorage.getItem('installDismissed')) {
-      const banner = document.getElementById('installBanner');
-      if (banner) {
-        banner.style.display = 'flex';
-        const navbar = document.querySelector('.navbar');
-        if (navbar) navbar.classList.add('banner-open');
-      }
-    }
-  });
-
-  window.addEventListener('appinstalled', () => {
-    const banner = document.getElementById('installBanner');
-    if (banner) banner.style.display = 'none';
-    const navbar = document.querySelector('.navbar');
-    if (navbar) navbar.classList.remove('banner-open');
-    deferredInstallPrompt = null;
-  });
-}
-
-function triggerInstall() {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(result => {
-    if (result.outcome === 'accepted') dismissInstall();
-    deferredInstallPrompt = null;
-  });
-}
-
-function dismissInstall() {
-  const banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  const navbar = document.querySelector('.navbar');
-  if (navbar) navbar.classList.remove('banner-open');
-  localStorage.setItem('installDismissed', '1');
-}
-
 // ─── INIT ────────────────────────────────────────────────────
-// Setup PWA install listener BEFORE DOM loads (must run at script load time)
-setupInstallPrompt();
-
 document.addEventListener('DOMContentLoaded', async () => {
   // Dynamic year
   document.getElementById('footerYear').textContent = new Date().getFullYear();
@@ -258,6 +211,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
   }
+
+  // PWA install prompt
+  setupInstallPrompt();
 
   // Load settings, then products
   await loadSettingsFromFirebase();
@@ -521,44 +477,55 @@ async function addProduct() {
   const price = document.getElementById('addPrice').value.trim();
   const desc  = document.getElementById('addDesc').value.trim();
   const msg   = document.getElementById('addMsg');
-
   if (!name || !price) { showMsg('addMsg', 'Please enter at least a name and price.', 'error'); return; }
 
+  const addBtn = document.getElementById('addBtn');
+  if (addBtn) addBtn.disabled = true;
   showMsg('addMsg', 'Saving…', 'info');
+
+  // Make operations fail-fast if they hang
+  const OP_TIMEOUT = 30000; // 30s
   try {
-    // Upload images to Firebase Storage
-    const uploadedUrls = await uploadImagesToStorage(newImages, `products/${Date.now()}`);
+    const op = (async () => {
+      // Upload images to Firebase Storage
+      const uploadedUrls = await uploadImagesToStorage(newImages, `products/${Date.now()}`);
 
-    const docRef = await db.collection(COL_PRODUCTS).add({
-      name, price, desc,
-      images: uploadedUrls,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+      const docRef = await db.collection(COL_PRODUCTS).add({
+        name, price, desc,
+        images: uploadedUrls,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
 
-    products.push({ id: docRef.id, name, price, desc, images: uploadedUrls });
-    renderCarousel();
+      products.push({ id: docRef.id, name, price, desc, images: uploadedUrls });
+      renderCarousel();
 
-    document.getElementById('addName').value = '';
-    document.getElementById('addPrice').value = '';
-    document.getElementById('addDesc').value = '';
-    document.getElementById('imagePreviewRow').innerHTML = '';
-    document.getElementById('addImages').value = '';
-    newImages = [];
-    showMsg('addMsg', `✦ ${name} added!`, 'success');
+      document.getElementById('addName').value = '';
+      document.getElementById('addPrice').value = '';
+      document.getElementById('addDesc').value = '';
+      document.getElementById('imagePreviewRow').innerHTML = '';
+      const addImagesEl = document.getElementById('addImages');
+      if (addImagesEl) addImagesEl.value = '';
+      newImages = [];
+      return name;
+    })();
+
+    // Timeout wrapper
+    const result = await Promise.race([
+      op,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('operation-timeout')), OP_TIMEOUT))
+    ]);
+
+    showMsg('addMsg', `✦ ${result} added!`, 'success');
   } catch (e) {
-    showMsg('addMsg', 'Error saving product. Check connection.', 'error');
-    console.error(e);
+    console.error('addProduct error:', e);
+    if (e && e.message === 'operation-timeout') {
+      showMsg('addMsg', 'Saving timed out. Check connection and try again.', 'error');
+    } else {
+      showMsg('addMsg', 'Error saving product. Check connection.', 'error');
+    }
+  } finally {
+    if (addBtn) addBtn.disabled = false;
   }
-}
-
-// Convert base64 string to Blob (direct, no fetch needed)
-function base64ToBlob(dataURL) {
-  const parts = dataURL.split(',');
-  const mime = (parts[0].match(/:(.*?);/) || ['', 'image/jpeg'])[1];
-  const bstr = atob(parts[1]);
-  const arr = new Uint8Array(bstr.length);
-  for (let i = 0; i < bstr.length; i++) arr[i] = bstr.charCodeAt(i);
-  return new Blob([arr], { type: mime });
 }
 
 // Upload base64 images to Firebase Storage, returns array of download URLs
@@ -570,14 +537,12 @@ async function uploadImagesToStorage(base64Arr, pathPrefix) {
       const b64 = base64Arr[i];
       const mimeMatch = b64.match(/data:([^;]+);base64,/);
       const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      // Convert base64 directly to Blob (faster, more reliable than fetch)
-      const blob = base64ToBlob(b64);
+      const blob = await (await fetch(b64)).blob();
       const ref = storage.ref(`${pathPrefix}_${i}.jpg`);
       await ref.put(blob, { contentType: mime });
       const url = await ref.getDownloadURL();
       urls.push(url);
     } catch (e) {
-      console.error(`Image upload ${i} failed:`, e);
       // If storage fails (e.g. rules), fall back to keeping the base64
       urls.push(base64Arr[i]);
     }
@@ -1022,7 +987,45 @@ async function scheduleReminders() {
 }
 
 // ─── PWA INSTALL ─────────────────────────────────────────────
-// (setupInstallPrompt, triggerInstall, dismissInstall moved before DOMContentLoaded)
+let deferredInstallPrompt = null;
+
+function setupInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    // Show banner if not dismissed
+    if (!localStorage.getItem('installDismissed')) {
+      const banner = document.getElementById('installBanner');
+      if (banner) {
+        banner.style.display = 'flex';
+        document.querySelector('.navbar').classList.add('banner-open');
+      }
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'none';
+    document.querySelector('.navbar').classList.remove('banner-open');
+    deferredInstallPrompt = null;
+  });
+}
+
+function triggerInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') dismissInstall();
+    deferredInstallPrompt = null;
+  });
+}
+
+function dismissInstall() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  document.querySelector('.navbar').classList.remove('banner-open');
+  localStorage.setItem('installDismissed', '1');
+}
 
 // ─── HELPERS ─────────────────────────────────────────────────
 function showMsg(id, text, type) {
