@@ -122,12 +122,17 @@ body::before {
 .carousel-section {
   position: relative; z-index: 1;
   padding: 24px 0 56px;
-  /* allow side-peek cards to be visible but clip overflow */
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .carousel-track-wrapper {
-  /* Extra vertical space so scaled-up card's shadow isn't clipped */
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   padding: 24px 0 32px;
 }
@@ -143,10 +148,12 @@ body::before {
 .carousel-track {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 20px;
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
-  /* No padding-left here — centering is handled entirely in JS */
+  width: auto;
+  min-width: fit-content;
 }
 
 /* ── CARD ── */
@@ -184,49 +191,74 @@ body::before {
   overflow: hidden;
   border-radius: var(--radius) var(--radius) 0 0;
   background: linear-gradient(135deg, var(--pink-blush), var(--gold-light));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .card-main-image {
-  width: 100%; height: 100%;
+  width: 100%; 
+  height: 100%;
   object-fit: cover;
   transition: opacity 0.3s ease;
 }
 .card-image-placeholder {
-  width: 100%; height: 100%;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; color: var(--pink-main); font-size: 48px;
+  width: 100%; 
+  height: 100%;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  gap: 12px; 
+  color: var(--pink-main); 
+  font-size: 48px;
 }
-.card-image-placeholder span { font-family: var(--font-display); font-size: 14px; color: var(--text-muted); }
+.card-image-placeholder span { 
+  font-family: var(--font-display); 
+  font-size: 14px; 
+  color: var(--text-muted); 
+}
 
-/* ── THUMBNAIL STRIP ── */
+/* ── THUMBNAIL STRIP (horizontal gallery) ── */
 .card-thumb-strip {
   display: flex;
   gap: 6px;
-  padding: 8px 12px 0;
+  padding: 10px 12px;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;      /* Firefox */
+  scrollbar-width: none;
+  justify-content: center;
+  flex-wrap: wrap;
+  background: var(--pink-soft);
 }
-.card-thumb-strip::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+.card-thumb-strip::-webkit-scrollbar { display: none; }
 
 .card-thumb {
   flex-shrink: 0;
-  width: 52px; height: 52px;
+  width: 56px; 
+  height: 56px;
   border-radius: 8px;
   object-fit: cover;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.2s ease;
-  opacity: 0.65;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  opacity: 0.7;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 .card-thumb.active-thumb {
   border-color: var(--pink-main);
   opacity: 1;
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(233,30,140,0.3);
+}
+.card-thumb:hover { 
+  opacity: 0.95;
   transform: scale(1.05);
 }
-.card-thumb:hover { opacity: 0.9; }
 
-/* hide thumb strip on non-active cards so it doesn't clutter */
-.perfume-card:not(.active) .card-thumb-strip { display: none; }
+/* show thumb strip on active cards only */
+.perfume-card:not(.active) .card-thumb-strip { 
+  display: none; 
+}
 
 /* legacy slider — kept for backward compat but hidden; gallery replaces it */
 .card-image-slider { display: none; }
@@ -240,10 +272,33 @@ body::before {
 .perfume-card.active .card-img-prev, .perfume-card.active .card-img-next { display: flex; }
 .card-img-prev:hover, .card-img-next:hover { background: rgba(255,255,255,0.95); }
 
-.card-body { padding: 20px 20px 24px; text-align: center; }
-.card-name { font-family: var(--font-display); font-size: 26px; font-weight: 400; color: var(--dark-mid); line-height: 1.2; margin-bottom: 4px; }
-.card-desc { font-size: 11px; font-weight: 300; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
-.card-price { font-family: var(--font-display); font-size: 22px; font-weight: 600; color: var(--pink-deep); margin-bottom: 18px; }
+.card-body { 
+  padding: 18px 16px 20px; 
+  text-align: center;
+}
+.card-name { 
+  font-family: var(--font-display); 
+  font-size: clamp(20px, 5vw, 28px); 
+  font-weight: 400; 
+  color: var(--dark-mid); 
+  line-height: 1.2; 
+  margin-bottom: 4px;
+}
+.card-desc { 
+  font-size: clamp(10px, 2.5vw, 13px); 
+  font-weight: 300; 
+  letter-spacing: 0.15em; 
+  text-transform: uppercase; 
+  color: var(--text-muted); 
+  margin-bottom: 10px;
+}
+.card-price { 
+  font-family: var(--font-display); 
+  font-size: clamp(18px, 5vw, 24px); 
+  font-weight: 600; 
+  color: var(--pink-deep); 
+  margin-bottom: 14px;
+}
 .card-cta {
   display: block; width: 100%; padding: 13px 20px;
   background: linear-gradient(135deg, var(--pink-main), var(--pink-deep));
@@ -472,32 +527,45 @@ body::before {
    RESPONSIVE
    =========================== */
 @media (max-width: 480px) {
-  .perfume-card { width: min(72vw, 260px); }
+  .carousel-section { padding: 20px 0 48px; }
+  .perfume-card { 
+    width: min(90vw, 280px); 
+    margin: 0 auto;
+  }
+  .card-thumb {
+    width: 50px;
+    height: 50px;
+  }
   .navbar { padding: 14px 18px; }
   .logo-text { font-size: 18px; }
   .modal { padding: 28px 18px; }
   .manager-modal { max-height: 88vh; }
   .phone-keypad { max-width: 260px; }
-  /* Arrows: hug the edges so they don't overlap active card */
-  .arrow-left  { left: 6px; }
-  .arrow-right { right: 6px; }
+  /* Arrows: positioned outside card on mobile */
+  .arrow-left  { left: 4px; }
+  .arrow-right { right: 4px; }
 }
 @media (min-width: 481px) and (max-width: 767px) {
-  .perfume-card { width: 300px; }
+  .carousel-section { padding: 24px 0 52px; }
+  .perfume-card { 
+    width: 310px; 
+    margin: 0 auto;
+  }
   .arrow-left  { left: 8px; }
   .arrow-right { right: 8px; }
 }
 @media (min-width: 768px) {
-  .perfume-card { width: 320px; }
-  /* Arrows sit just outside the active card — card is 320px wide, centered */
-  .arrow-left  { left: calc(50% - 210px); }
-  .arrow-right { right: calc(50% - 210px); }
+  .carousel-section { padding: 28px 0 56px; }
+  .perfume-card { width: 340px; }
+  /* Arrows sit just outside the active card — card is 340px wide, centered */
+  .arrow-left  { left: calc(50% - 220px); }
+  .arrow-right { right: calc(50% - 220px); }
 }
 @media (min-width: 1024px) {
-  .perfume-card { width: 360px; }
+  .perfume-card { width: 380px; }
   .hero-title { font-size: 80px; }
-  .arrow-left  { left: calc(50% - 230px); }
-  .arrow-right { right: calc(50% - 230px); }
+  .arrow-left  { left: calc(50% - 250px); }
+  .arrow-right { right: calc(50% - 250px); }
 }
 
 /* Shake animation for wrong password */
