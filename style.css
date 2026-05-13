@@ -125,9 +125,6 @@ body::before {
   width: 100%;
   max-width: 100%;
   overflow: hidden;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 .carousel-track-wrapper {
@@ -148,12 +145,10 @@ body::before {
 .carousel-track {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 20px;
   transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
-  width: auto;
-  min-width: fit-content;
+  /* Do NOT set width here — let JS position via transform */
 }
 
 /* ── CARD ── */
@@ -529,8 +524,8 @@ body::before {
 @media (max-width: 480px) {
   .carousel-section { padding: 20px 0 48px; }
   .perfume-card { 
-    width: min(90vw, 280px); 
-    margin: 0 auto;
+    width: min(90vw, 280px);
+    flex-shrink: 0;
   }
   .card-thumb {
     width: 50px;
@@ -548,21 +543,27 @@ body::before {
 @media (min-width: 481px) and (max-width: 767px) {
   .carousel-section { padding: 24px 0 52px; }
   .perfume-card { 
-    width: 310px; 
-    margin: 0 auto;
+    width: 310px;
+    flex-shrink: 0;
   }
   .arrow-left  { left: 8px; }
   .arrow-right { right: 8px; }
 }
 @media (min-width: 768px) {
   .carousel-section { padding: 28px 0 56px; }
-  .perfume-card { width: 340px; }
+  .perfume-card { 
+    width: 340px;
+    flex-shrink: 0;
+  }
   /* Arrows sit just outside the active card — card is 340px wide, centered */
   .arrow-left  { left: calc(50% - 220px); }
   .arrow-right { right: calc(50% - 220px); }
 }
 @media (min-width: 1024px) {
-  .perfume-card { width: 380px; }
+  .perfume-card { 
+    width: 380px;
+    flex-shrink: 0;
+  }
   .hero-title { font-size: 80px; }
   .arrow-left  { left: calc(50% - 250px); }
   .arrow-right { right: calc(50% - 250px); }
