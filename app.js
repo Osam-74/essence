@@ -202,7 +202,54 @@ let products     = [];
 let touchStartX  = 0;
 let touchEndX    = 0;
 
+// ─── PWA INSTALL (moved before DOM) ──────────────────────────
+let deferredInstallPrompt = null;
+
+function setupInstallPrompt() {
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    // Show banner if not dismissed
+    if (!localStorage.getItem('installDismissed')) {
+      const banner = document.getElementById('installBanner');
+      if (banner) {
+        banner.style.display = 'flex';
+        const navbar = document.querySelector('.navbar');
+        if (navbar) navbar.classList.add('banner-open');
+      }
+    }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    const banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'none';
+    const navbar = document.querySelector('.navbar');
+    if (navbar) navbar.classList.remove('banner-open');
+    deferredInstallPrompt = null;
+  });
+}
+
+function triggerInstall() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(result => {
+    if (result.outcome === 'accepted') dismissInstall();
+    deferredInstallPrompt = null;
+  });
+}
+
+function dismissInstall() {
+  const banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'none';
+  const navbar = document.querySelector('.navbar');
+  if (navbar) navbar.classList.remove('banner-open');
+  localStorage.setItem('installDismissed', '1');
+}
+
 // ─── INIT ────────────────────────────────────────────────────
+// Setup PWA install listener BEFORE DOM loads (must run at script load time)
+setupInstallPrompt();
+
 document.addEventListener('DOMContentLoaded', async () => {
   // Dynamic year
   document.getElementById('footerYear').textContent = new Date().getFullYear();
@@ -211,9 +258,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW:', e));
   }
-
-  // PWA install prompt
-  setupInstallPrompt();
 
   // Load settings, then products
   await loadSettingsFromFirebase();
@@ -507,6 +551,16 @@ async function addProduct() {
   }
 }
 
+// Convert base64 string to Blob (direct, no fetch needed)
+function base64ToBlob(dataURL) {
+  const parts = dataURL.split(',');
+  const mime = (parts[0].match(/:(.*?);/) || ['', 'image/jpeg'])[1];
+  const bstr = atob(parts[1]);
+  const arr = new Uint8Array(bstr.length);
+  for (let i = 0; i < bstr.length; i++) arr[i] = bstr.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
 // Upload base64 images to Firebase Storage, returns array of download URLs
 async function uploadImagesToStorage(base64Arr, pathPrefix) {
   if (!base64Arr.length) return [];
@@ -516,12 +570,14 @@ async function uploadImagesToStorage(base64Arr, pathPrefix) {
       const b64 = base64Arr[i];
       const mimeMatch = b64.match(/data:([^;]+);base64,/);
       const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      const blob = await (await fetch(b64)).blob();
+      // Convert base64 directly to Blob (faster, more reliable than fetch)
+      const blob = base64ToBlob(b64);
       const ref = storage.ref(`${pathPrefix}_${i}.jpg`);
       await ref.put(blob, { contentType: mime });
       const url = await ref.getDownloadURL();
       urls.push(url);
     } catch (e) {
+      console.error(`Image upload ${i} failed:`, e);
       // If storage fails (e.g. rules), fall back to keeping the base64
       urls.push(base64Arr[i]);
     }
@@ -966,45 +1022,7 @@ async function scheduleReminders() {
 }
 
 // ─── PWA INSTALL ─────────────────────────────────────────────
-let deferredInstallPrompt = null;
-
-function setupInstallPrompt() {
-  window.addEventListener('beforeinstallprompt', e => {
-    e.preventDefault();
-    deferredInstallPrompt = e;
-    // Show banner if not dismissed
-    if (!localStorage.getItem('installDismissed')) {
-      const banner = document.getElementById('installBanner');
-      if (banner) {
-        banner.style.display = 'flex';
-        document.querySelector('.navbar').classList.add('banner-open');
-      }
-    }
-  });
-
-  window.addEventListener('appinstalled', () => {
-    const banner = document.getElementById('installBanner');
-    if (banner) banner.style.display = 'none';
-    document.querySelector('.navbar').classList.remove('banner-open');
-    deferredInstallPrompt = null;
-  });
-}
-
-function triggerInstall() {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  deferredInstallPrompt.userChoice.then(result => {
-    if (result.outcome === 'accepted') dismissInstall();
-    deferredInstallPrompt = null;
-  });
-}
-
-function dismissInstall() {
-  const banner = document.getElementById('installBanner');
-  if (banner) banner.style.display = 'none';
-  document.querySelector('.navbar').classList.remove('banner-open');
-  localStorage.setItem('installDismissed', '1');
-}
+// (setupInstallPrompt, triggerInstall, dismissInstall moved before DOMContentLoaded)
 
 // ─── HELPERS ─────────────────────────────────────────────────
 function showMsg(id, text, type) {
