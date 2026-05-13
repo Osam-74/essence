@@ -300,53 +300,77 @@ function renderCarousel() {
   positionCarousel(false);
 }
 
+// Track which image is currently shown for each card
+const cardActiveImg = {};
+
 function createCard(product, index) {
   const card = document.createElement('div');
   card.className = 'perfume-card';
   card.dataset.index = index;
 
   const images = product.images || [];
-  let imgHTML = '';
 
+  // Initialise image tracker for this card
+  if (cardActiveImg[index] === undefined) cardActiveImg[index] = 0;
+
+  // ── Main prominent image ──
+  let mainImgHTML = '';
   if (images.length > 0) {
-    const slides = images.map(src =>
-      `<img class="card-image-slide" src="${src}" alt="${esc(product.name)}" loading="lazy"/>`
-    ).join('');
-    const imgDots = images.length > 1
-      ? `<div class="card-img-dots">${images.map((_,i) =>
-          `<span class="card-img-dot${i===0?' active':''}" onclick="imgSlide(event,${index},${i})"></span>`
-        ).join('')}</div>` : '';
-    const prev = images.length > 1 ? `<button class="card-img-prev" onclick="imgSlide(event,${index},-1)">&#8249;</button>` : '';
-    const next = images.length > 1 ? `<button class="card-img-next" onclick="imgSlide(event,${index},1)">&#8250;</button>` : '';
-    imgHTML = `<div class="card-image-slider"><div class="card-image-slides" id="imgSlides${index}">${slides}</div>${prev}${next}${imgDots}</div>`;
+    mainImgHTML = `
+      <div class="card-main-image-wrap">
+        <img class="card-main-image"
+             id="mainImg-${index}"
+             src="${images[0]}"
+             alt="${esc(product.name)}"
+             loading="lazy"/>
+      </div>`;
   } else {
-    imgHTML = `<div class="card-image-slider"><div class="card-image-placeholder">🌸<span>No image yet</span></div></div>`;
+    mainImgHTML = `
+      <div class="card-main-image-wrap">
+        <div class="card-image-placeholder">🌸<span>No image yet</span></div>
+      </div>`;
   }
 
-  // WA link built async from settings — use a placeholder and update
-  const waLink = `#wa-${product.id}`;
+  // ── Thumbnail strip (only shown when card is active; hidden via CSS otherwise) ──
+  let thumbsHTML = '';
+  if (images.length > 1) {
+    const thumbItems = images.map((src, i) => `
+      <img class="card-thumb${i === 0 ? ' active-thumb' : ''}"
+           id="thumb-${index}-${i}"
+           src="${src}"
+           alt="Image ${i + 1}"
+           loading="lazy"
+           onclick="switchCardImage(event, ${index}, ${i})"/>`
+    ).join('');
+    thumbsHTML = `<div class="card-thumb-strip" id="thumbStrip-${index}">${thumbItems}</div>`;
+  }
+
+  // WA link — async-filled after settings load
+  const ctaId = `cta-${product.id}`;
 
   card.innerHTML = `
-    ${imgHTML}
+    ${mainImgHTML}
+    ${thumbsHTML}
     <div class="card-body">
       <h2 class="card-name">${esc(product.name)}</h2>
       ${product.desc ? `<p class="card-desc">${esc(product.desc)}</p>` : ''}
       <p class="card-price">${esc(product.price)}</p>
-      <a href="${waLink}" class="card-cta" id="cta-${product.id}" target="_blank" rel="noopener">
+      <a href="#" class="card-cta" id="${ctaId}" target="_blank" rel="noopener">
         💬 I'm Interested in This
       </a>
     </div>`;
 
-  // Update WA link with settings
+  // Fill the WA link asynchronously
   getSettingsData().then(s => {
-    const waNumber = s.waNumber || '2348000000000';
+    const waNumber = (s.waNumber || '2348000000000').replace(/\D/g,'');
     const msg = encodeURIComponent(
       `Hey! I'd love to know more about the *${product.name}* perfume. I'm interested! 🌸`
     );
-    const link = card.querySelector(`#cta-${product.id}`);
+    const link = card.querySelector(`#${ctaId}`);
     if (link) link.href = `https://wa.me/${waNumber}?text=${msg}`;
   });
 
+  // Clicking a non-active card navigates to it
   card.addEventListener('click', () => {
     const idx = parseInt(card.dataset.index);
     if (idx !== currentIndex) goTo(idx);
@@ -355,23 +379,35 @@ function createCard(product, index) {
   return card;
 }
 
-const cardImgIndex = {};
-
-function imgSlide(event, cardIndex, val) {
+/**
+ * Switch the prominent image on a card when a thumbnail is clicked.
+ */
+function switchCardImage(event, cardIndex, imgIndex) {
   event.stopPropagation();
+
+  const mainImg = document.getElementById(`mainImg-${cardIndex}`);
   const product = products[cardIndex];
-  const images  = product.images || [];
-  if (images.length <= 1) return;
-  if (cardImgIndex[cardIndex] === undefined) cardImgIndex[cardIndex] = 0;
-  if (val === -1 || val === 1) {
-    cardImgIndex[cardIndex] = (cardImgIndex[cardIndex] + val + images.length) % images.length;
-  } else {
-    cardImgIndex[cardIndex] = val;
+  if (!mainImg || !product) return;
+
+  const images = product.images || [];
+  if (!images[imgIndex]) return;
+
+  // Fade swap
+  mainImg.style.opacity = '0';
+  setTimeout(() => {
+    mainImg.src = images[imgIndex];
+    mainImg.style.opacity = '1';
+  }, 150);
+
+  // Update thumbnail active state
+  const thumbStrip = document.getElementById(`thumbStrip-${cardIndex}`);
+  if (thumbStrip) {
+    thumbStrip.querySelectorAll('.card-thumb').forEach((t, i) => {
+      t.classList.toggle('active-thumb', i === imgIndex);
+    });
   }
-  const slides = document.getElementById(`imgSlides${cardIndex}`);
-  if (slides) slides.style.transform = `translateX(-${cardImgIndex[cardIndex] * 100}%)`;
-  const cardEl = document.querySelector(`.perfume-card[data-index="${cardIndex}"]`);
-  if (cardEl) cardEl.querySelectorAll('.card-img-dot').forEach((d,i) => d.classList.toggle('active', i === cardImgIndex[cardIndex]));
+
+  cardActiveImg[cardIndex] = imgIndex;
 }
 
 function positionCarousel(animate = true) {
@@ -379,21 +415,39 @@ function positionCarousel(animate = true) {
   const cards = track.querySelectorAll('.perfume-card');
   if (!cards.length) return;
 
-  const cardWidth = cards[0].offsetWidth;
-  const gap = 20;
+  const GAP = 20;
+  // Use the actual rendered card width (first card)
+  const cardWidth = cards[0].getBoundingClientRect().width || cards[0].offsetWidth;
+  const viewportW  = document.getElementById('carouselSection').offsetWidth;
 
   cards.forEach((card, i) => {
     card.classList.remove('active', 'adjacent');
-    if (i === currentIndex) card.classList.add('active');
+    if (i === currentIndex)             card.classList.add('active');
     else if (Math.abs(i - currentIndex) === 1) card.classList.add('adjacent');
   });
 
-  const offset = -(currentIndex * (cardWidth + gap));
+  /*
+    We want card[currentIndex] centered in viewportW.
+    Card left edge without any transform = index * (cardWidth + GAP).
+    Center of that card                  = index * (cardWidth + GAP) + cardWidth/2.
+    We want it at viewportW/2:
+      offset = viewportW/2 - (index*(cardWidth+GAP) + cardWidth/2)
+  */
+  const offset = viewportW / 2 - (currentIndex * (cardWidth + GAP)) - cardWidth / 2;
+
   if (!animate) track.style.transition = 'none';
   track.style.transform = `translateX(${offset}px)`;
-  if (!animate) { track.offsetHeight; track.style.transition = ''; }
+  if (!animate) {
+    track.offsetHeight;          // force reflow
+    track.style.transition = '';
+  }
 
-  document.querySelectorAll('.dot-item').forEach((d, i) => d.classList.toggle('active', i === currentIndex));
+  // Dots
+  document.querySelectorAll('.dot-item').forEach((d, i) =>
+    d.classList.toggle('active', i === currentIndex)
+  );
+
+  // Arrows
   const left  = document.getElementById('arrowLeft');
   const right = document.getElementById('arrowRight');
   if (left)  left.disabled  = currentIndex === 0;
