@@ -2,19 +2,33 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Scent & Soul — Luxury Perfumes</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#e91e8c"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Scent &amp; Soul"/>
+  <meta name="description" content="Exclusive handcrafted luxury perfume collection."/>
+  <title>Scent &amp; Soul — Luxury Perfumes</title>
+  <link rel="manifest" href="manifest.json"/>
+  <link rel="apple-touch-icon" href="icons/icon-192.png"/>
+  <link rel="stylesheet" href="style.css"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
+  <!-- PWA Install Banner -->
+  <div class="install-banner" id="installBanner" style="display:none;">
+    <span>📲 Install app for the best experience</span>
+    <button onclick="triggerInstall()">Install</button>
+    <button class="dismiss-btn" onclick="dismissInstall()">✕</button>
+  </div>
+
   <!-- NAV -->
   <nav class="navbar">
     <div class="nav-logo">
       <span class="logo-icon">✦</span>
-      <span class="logo-text">Scent &amp; Soul</span>
+      <span class="logo-text" id="navStoreName">Scent &amp; Soul</span>
     </div>
     <button class="manage-btn" onclick="openLoginModal()">Manage</button>
   </nav>
@@ -26,18 +40,15 @@
   </header>
 
   <!-- CAROUSEL SECTION -->
-  <section class="carousel-section">
+  <section class="carousel-section" id="carouselSection">
     <div class="carousel-track-wrapper">
       <div class="carousel-track" id="carouselTrack"></div>
     </div>
-
-    <!-- Dot indicators -->
     <div class="dots-container" id="dotsContainer"></div>
-
-    <!-- Nav arrows -->
     <button class="arrow arrow-left" id="arrowLeft" onclick="slide(-1)">&#8592;</button>
     <button class="arrow arrow-right" id="arrowRight" onclick="slide(1)">&#8594;</button>
   </section>
+  <p class="swipe-hint" id="swipeHint" style="display:none;">← swipe to browse →</p>
 
   <div class="empty-state" id="emptyState" style="display:none;">
     <div class="empty-icon">✦</div>
@@ -46,103 +57,215 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <p class="footer-brand">Scent &amp; Soul</p>
-    <p class="footer-copy">&copy; 2025 · All rights reserved</p>
+    <p class="footer-brand" id="footerStoreName">Scent &amp; Soul</p>
+    <p class="footer-copy">&copy; <span id="footerYear"></span> · All rights reserved</p>
   </footer>
 
-  <!-- ===== LOGIN MODAL ===== -->
+  <!-- =====================================================
+       LOGIN MODAL — T9 multi-tap keypad
+       ===================================================== -->
   <div class="modal-overlay" id="loginModal">
     <div class="modal login-modal">
       <button class="modal-close" onclick="closeLoginModal()">&#10005;</button>
       <h2 class="modal-title">Manager Login</h2>
-      <p class="modal-subtitle">Enter your passcode</p>
+      <p class="modal-subtitle">Type your passcode using the keypad</p>
 
-      <div class="passcode-display" id="passcodeDisplay">
-        <span class="dot" id="d1"></span>
-        <span class="dot" id="d2"></span>
-        <span class="dot" id="d3"></span>
-        <span class="dot" id="d4"></span>
-        <span class="dot" id="d5"></span>
-        <span class="dot" id="d6"></span>
-        <span class="dot" id="d7"></span>
-        <span class="dot" id="d8"></span>
-        <span class="dot" id="d9"></span>
-        <span class="dot" id="d10"></span>
+      <div class="passcode-input-row">
+        <div class="passcode-typed-wrap">
+          <span class="passcode-typed" id="passcodeTyped">&nbsp;</span>
+          <span class="passcode-pending" id="passcodePending"></span>
+          <span class="passcode-cursor blink">|</span>
+        </div>
       </div>
       <p class="login-error" id="loginError"></p>
 
       <div class="phone-keypad">
-        <button class="key-btn" onclick="keyPress('1')"><span class="key-num">1</span><span class="key-alpha"></span></button>
-        <button class="key-btn" onclick="keyPress('2')"><span class="key-num">2</span><span class="key-alpha">ABC</span></button>
-        <button class="key-btn" onclick="keyPress('3')"><span class="key-num">3</span><span class="key-alpha">DEF</span></button>
-        <button class="key-btn" onclick="keyPress('4')"><span class="key-num">4</span><span class="key-alpha">GHI</span></button>
-        <button class="key-btn" onclick="keyPress('5')"><span class="key-num">5</span><span class="key-alpha">JKL</span></button>
-        <button class="key-btn" onclick="keyPress('6')"><span class="key-num">6</span><span class="key-alpha">MNO</span></button>
-        <button class="key-btn" onclick="keyPress('7')"><span class="key-num">7</span><span class="key-alpha">PQRS</span></button>
-        <button class="key-btn" onclick="keyPress('8')"><span class="key-num">8</span><span class="key-alpha">TUV</span></button>
-        <button class="key-btn" onclick="keyPress('9')"><span class="key-num">9</span><span class="key-alpha">WXYZ</span></button>
-        <button class="key-btn key-star" onclick="keyPress('*')"><span class="key-num">*</span><span class="key-alpha"></span></button>
-        <button class="key-btn" onclick="keyPress('0')"><span class="key-num">0</span><span class="key-alpha">+</span></button>
-        <button class="key-btn key-hash" onclick="keyDelete()"><span class="key-num">⌫</span><span class="key-alpha"></span></button>
+        <button class="key-btn" id="key1" onclick="t9Press('1')"><span class="key-num">1</span><span class="key-alpha"></span></button>
+        <button class="key-btn" id="key2" onclick="t9Press('2')"><span class="key-num">2</span><span class="key-alpha">ABC</span></button>
+        <button class="key-btn" id="key3" onclick="t9Press('3')"><span class="key-num">3</span><span class="key-alpha">DEF</span></button>
+        <button class="key-btn" id="key4" onclick="t9Press('4')"><span class="key-num">4</span><span class="key-alpha">GHI</span></button>
+        <button class="key-btn" id="key5" onclick="t9Press('5')"><span class="key-num">5</span><span class="key-alpha">JKL</span></button>
+        <button class="key-btn" id="key6" onclick="t9Press('6')"><span class="key-num">6</span><span class="key-alpha">MNO</span></button>
+        <button class="key-btn" id="key7" onclick="t9Press('7')"><span class="key-num">7</span><span class="key-alpha">PQRS</span></button>
+        <button class="key-btn" id="key8" onclick="t9Press('8')"><span class="key-num">8</span><span class="key-alpha">TUV</span></button>
+        <button class="key-btn" id="key9" onclick="t9Press('9')"><span class="key-num">9</span><span class="key-alpha">WXYZ</span></button>
+        <button class="key-btn key-star" onclick="t9Clear()"><span class="key-num">✕</span><span class="key-alpha">CLR</span></button>
+        <button class="key-btn" id="key0" onclick="t9Press('0')"><span class="key-num">0</span><span class="key-alpha">+</span></button>
+        <button class="key-btn key-hash" onclick="t9Delete()"><span class="key-num">⌫</span><span class="key-alpha"></span></button>
       </div>
+      <p class="t9-hint">Multi-tap like a classic phone · press <b>2</b> twice → <b>b</b> · 3 times → <b>c</b><br>A short pause confirms each character</p>
     </div>
   </div>
 
-  <!-- ===== MANAGER PANEL ===== -->
+  <!-- =====================================================
+       MANAGER PANEL
+       ===================================================== -->
   <div class="modal-overlay" id="managerPanel">
     <div class="modal manager-modal">
       <button class="modal-close" onclick="closeManagerPanel()">&#10005;</button>
-      <h2 class="modal-title">Manage Products</h2>
+      <h2 class="modal-title">Manager</h2>
 
       <div class="manager-tabs">
-        <button class="tab-btn active" id="tabAdd" onclick="switchTab('add')">Add New</button>
-        <button class="tab-btn" id="tabEdit" onclick="switchTab('edit')">Edit / Delete</button>
-        <button class="tab-btn" id="tabSettings" onclick="switchTab('settings')">Settings</button>
+        <button class="tab-btn active" id="tabAdd"      onclick="switchTab('add')">Add</button>
+        <button class="tab-btn"        id="tabEdit"     onclick="switchTab('edit')">Products</button>
+        <button class="tab-btn"        id="tabSales"    onclick="switchTab('sales')">Sales</button>
+        <button class="tab-btn"        id="tabChart"    onclick="switchTab('chart')">Chart</button>
+        <button class="tab-btn"        id="tabSettings" onclick="switchTab('settings')">Settings</button>
       </div>
 
       <!-- ADD TAB -->
       <div class="tab-content" id="tabContentAdd">
         <div class="form-group">
           <label>Perfume Name</label>
-          <input type="text" id="addName" placeholder="e.g. Clause Rose" />
+          <input type="text" id="addName" placeholder="e.g. Clause Rose"/>
         </div>
         <div class="form-group">
           <label>Price (e.g. ₦25,000)</label>
-          <input type="text" id="addPrice" placeholder="₦25,000" />
+          <input type="text" id="addPrice" placeholder="₦25,000"/>
         </div>
         <div class="form-group">
           <label>Short Description (optional)</label>
-          <input type="text" id="addDesc" placeholder="Warm · Floral · Elegant" />
+          <input type="text" id="addDesc" placeholder="Warm · Floral · Elegant"/>
         </div>
         <div class="form-group">
           <label>Product Images (up to 5)</label>
-          <div class="upload-area" id="uploadArea" onclick="document.getElementById('addImages').click()">
+          <div class="upload-area" onclick="document.getElementById('addImages').click()">
             <span>📷 Tap to upload images</span>
           </div>
-          <input type="file" id="addImages" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)" />
+          <input type="file" id="addImages" accept="image/*" multiple style="display:none" onchange="handleImageUpload(event)"/>
           <div class="image-preview-row" id="imagePreviewRow"></div>
         </div>
         <button class="primary-btn" onclick="addProduct()">Add Perfume ✦</button>
         <p class="form-msg" id="addMsg"></p>
       </div>
 
-      <!-- EDIT TAB -->
+      <!-- EDIT/DELETE TAB -->
       <div class="tab-content hidden" id="tabContentEdit">
         <div class="product-list" id="editProductList"></div>
+      </div>
+
+      <!-- SALES TAB -->
+      <div class="tab-content hidden" id="tabContentSales">
+        <h3 class="section-sub">Record a Sale</h3>
+
+        <div class="form-group">
+          <label>Perfume Sold</label>
+          <select id="salePerfume" class="form-select">
+            <option value="">— Select a perfume —</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group half">
+            <label>Cost Price (₦)</label>
+            <input type="number" id="saleCost" placeholder="0"/>
+          </div>
+          <div class="form-group half">
+            <label>Selling Price (₦)</label>
+            <input type="number" id="saleSelling" placeholder="0"/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Buyer's Name</label>
+          <input type="text" id="saleBuyer" placeholder="e.g. Adaeze Johnson"/>
+        </div>
+        <div class="form-group">
+          <label>Date of Sale</label>
+          <input type="date" id="saleDate"/>
+        </div>
+        <div class="form-group">
+          <label>Payment Status</label>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="payType" value="paid" checked onchange="toggleCredit(false)"/>
+              Paid in Full
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="payType" value="credit" onchange="toggleCredit(true)"/>
+              On Credit
+            </label>
+          </div>
+        </div>
+
+        <div id="creditSection" style="display:none;">
+          <div class="form-row">
+            <div class="form-group half">
+              <label>Amount Paid (₦)</label>
+              <input type="number" id="saleAmtPaid" placeholder="0" oninput="calcBalance()"/>
+            </div>
+            <div class="form-group half">
+              <label>Balance Due (₦)</label>
+              <input type="number" id="saleBalance" placeholder="0" readonly style="background:var(--pink-blush);"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Payment Due Date</label>
+            <input type="date" id="saleDueDate"/>
+          </div>
+          <div class="form-group">
+            <label>Buyer's Phone / WhatsApp</label>
+            <input type="text" id="saleBuyerPhone" placeholder="e.g. 08012345678"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <input type="text" id="saleNotes" placeholder="Any extra info..."/>
+        </div>
+        <button class="primary-btn" onclick="recordSale()">Record Sale ✦</button>
+        <p class="form-msg" id="saleMsg"></p>
+
+        <hr class="divider"/>
+        <div class="sales-list-header">
+          <h3 class="section-sub">History</h3>
+          <button class="filter-toggle" onclick="toggleSalesFilter()">Filter ▾</button>
+        </div>
+        <div id="salesFilterBox" style="display:none;" class="sales-filter-box">
+          <div class="form-row">
+            <div class="form-group half"><label>From</label><input type="date" id="filterFrom"/></div>
+            <div class="form-group half"><label>To</label><input type="date" id="filterTo"/></div>
+          </div>
+          <button class="secondary-btn" onclick="renderSalesList()">Apply</button>
+          <button class="secondary-btn" onclick="clearFilter()">Clear</button>
+        </div>
+
+        <div class="credit-alert-box" id="creditAlertBox"></div>
+        <div class="sales-list" id="salesList"></div>
+      </div>
+
+      <!-- CHART TAB -->
+      <div class="tab-content hidden" id="tabContentChart">
+        <h3 class="section-sub">Sales Performance</h3>
+        <div class="chart-controls">
+          <select id="chartYear" onchange="renderChart()"></select>
+          <select id="chartMetric" onchange="renderChart()">
+            <option value="revenue">Revenue (₦)</option>
+            <option value="profit">Profit (₦)</option>
+            <option value="count">Units Sold</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="salesChart" width="340" height="220"></canvas>
+        </div>
+        <div class="chart-summary" id="chartSummary"></div>
       </div>
 
       <!-- SETTINGS TAB -->
       <div class="tab-content hidden" id="tabContentSettings">
         <div class="form-group">
           <label>WhatsApp Number (with country code)</label>
-          <input type="text" id="waNumber" placeholder="e.g. 2348012345678" />
+          <input type="text" id="waNumber" placeholder="e.g. 2348012345678"/>
         </div>
         <div class="form-group">
           <label>Store Name</label>
-          <input type="text" id="storeName" placeholder="Scent & Soul" />
+          <input type="text" id="storeName" placeholder="Scent &amp; Soul"/>
         </div>
         <button class="primary-btn" onclick="saveSettings()">Save Settings</button>
         <p class="form-msg" id="settingsMsg"></p>
+        <hr class="divider"/>
+        <h3 class="section-sub">Notifications</h3>
+        <p class="settings-note">Enable notifications to receive credit payment reminders on your device.</p>
+        <button class="secondary-btn" id="notifBtn" onclick="requestNotificationPermission()">🔔 Enable Reminders</button>
+        <p class="form-msg" id="notifMsg"></p>
       </div>
     </div>
   </div>
@@ -152,31 +275,27 @@
     <div class="modal edit-modal">
       <button class="modal-close" onclick="closeEditModal()">&#10005;</button>
       <h2 class="modal-title">Edit Perfume</h2>
-      <input type="hidden" id="editId" />
-      <div class="form-group">
-        <label>Perfume Name</label>
-        <input type="text" id="editName" />
-      </div>
-      <div class="form-group">
-        <label>Price</label>
-        <input type="text" id="editPrice" />
-      </div>
-      <div class="form-group">
-        <label>Description</label>
-        <input type="text" id="editDesc" />
-      </div>
+      <input type="hidden" id="editId"/>
+      <div class="form-group"><label>Perfume Name</label><input type="text" id="editName"/></div>
+      <div class="form-group"><label>Price</label><input type="text" id="editPrice"/></div>
+      <div class="form-group"><label>Description</label><input type="text" id="editDesc"/></div>
       <div class="form-group">
         <label>Add More Images</label>
         <div class="upload-area" onclick="document.getElementById('editImages').click()">
           <span>📷 Tap to upload more images</span>
         </div>
-        <input type="file" id="editImages" accept="image/*" multiple style="display:none" onchange="handleEditImageUpload(event)" />
+        <input type="file" id="editImages" accept="image/*" multiple style="display:none" onchange="handleEditImageUpload(event)"/>
         <div class="image-preview-row" id="editImagePreviewRow"></div>
       </div>
       <button class="primary-btn" onclick="saveEdit()">Save Changes</button>
       <p class="form-msg" id="editMsg"></p>
     </div>
   </div>
+
+  <!-- Firebase compat SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
   <script src="app.js"></script>
 </body>
